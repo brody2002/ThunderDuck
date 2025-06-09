@@ -8,28 +8,21 @@ local graphics <const> = playdate.graphics
 
 ---@class playdate.graphics.sprite
 local player = nil
-local playerImage = nil
+
+-- Constants:
+local left, right = 1, 0
 
 -- Screen Dimensions
 local playdateHeight = 240
 local playdateWidth = 400
 
--- Sprite Directions
-local left, right = 1, 2
-local direction =  left
-
-
-
 local function createPlayer()
     player = graphics.sprite.new()
-    player.direction = direction
+    player.direction = right
+
+    player.ratio = 32/96
     player.idle = AnimatedImage.new("Images/Duck/Gifs/idle", {delay = 200, loop = true, first = 1, last = 2})
     player.moving = AnimatedImage.new("Images/Duck/Gifs/Walking", {delay = 200, loop = true, first = 1, last = 2})
-    
-    if not player.idle or not player.moving then
-        print("⚠️ Failed to create animations!")
-        return
-    end
     
     player.currentAnimation = player.idle
     
@@ -39,7 +32,7 @@ local function createPlayer()
     player:setImage(initialImage)
     
     local floorLevel = playdateHeight - 32
-    player:moveTo(200, floorLevel - 45)
+    player:moveTo(200, floorLevel - 44)
     player:add()
 end
 
@@ -87,18 +80,24 @@ local function myGameSetUp()
 end
 
 function playdate.update()
-    local movement = 2
+
+    -- Player Animation Values: 
     local didMove = false
+
+    -- Player Stats
+    local movement = 4
+
+    
     local function handleMovement()
         if playdate.buttonIsPressed(playdate.kButtonLeft) then
             player.currentAnimation = player.moving
             player:moveBy(-movement, 0)
-            direction = left
+            player.direction = left
             didMove = true
         elseif playdate.buttonIsPressed(playdate.kButtonRight) then
             player.currentAnimation = player.moving
             player:moveBy(movement, 0)
-            direction = right
+            player.direction = right
             didMove = true
         end
         if not didMove then
@@ -108,14 +107,8 @@ function playdate.update()
 
     -- Movement Function
     handleMovement()
+    player:setImage(player.currentAnimation:getImage():scaledImage(player.ratio, player.ratio) , player.direction)
     
-    -- Update animation and set sprite image
-     -- Draw current animation frame at player position with flip
-    local x, y = player:getPosition()
-    local flip = direction == left and playdate.graphics.kImageFlippedX or playdate.graphics.kImageUnflipped
-
-    player.currentAnimation:drawCentered(x,y,flip)
-    player:setImage(player.currentAnimation:getImage(), direction)
     
     graphics.sprite.update()
     playdate.timer.updateTimers()
