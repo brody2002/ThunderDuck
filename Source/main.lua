@@ -5,7 +5,7 @@ import "CoreLibs/timer"
 import "../Support/animatedimage"
 
 local graphics <const> = playdate.graphics
-local vector2D = playdate.geometry.vector2D
+local sound <const> = playdate.sound
 
 local min, max, abs, floor = math.min, math.max, math.abs, math.floor
 
@@ -46,6 +46,10 @@ local function createPlayer()
     print("Player Dimensions Idle",width,height)
 
     player.velocity = { x = 0, y = 0 }
+
+    -- Sound Effects
+    player.jumpSound = sound.fileplayer.new("Sounds/SoundEffects/Jump")
+    player.lazerSound = sound.fileplayer.new("Sounds/SoundEffects/Lazer")
     
     -- Verify we can get an image
     local initialImage = player.currentAnimation:getImage()
@@ -55,6 +59,18 @@ local function createPlayer()
     local floorLevel = playdateHeight - 32
     player:moveTo(200, floorLevel - 44)
     player:add()
+end
+
+local function setupAudio()
+    -- Create a fileplayer for your soundtrack
+    local soundtrack = sound.fileplayer.new("Sounds/SoundTracks/SoundTrack")  -- Assumes your file is in Sounds/soundtrack.wav
+    if soundtrack then
+        -- Set to loop when it reaches the end
+        soundtrack:setLoopRange(0, soundtrack:getLength())
+        soundtrack:play(0)  -- Play immediately from position 0
+    else
+        print("⚠️ Couldn't load soundtrack")
+    end
 end
 
 
@@ -97,15 +113,22 @@ local function myGameSetUp()
     createFloor() -- Create Floor
 
     createBackground() -- Create Background
+
+    setupAudio()
 end
 
 local function jump()
     if onGround then
         isJumping = true
         jumpStartTime = playdate.getCurrentTimeMilliseconds()
+        player.jumpSound:play()
         currentJumpVelocity = JUMP_VELOCITY
         onGround = false
     end
+end
+
+local function shoot()
+    player.lazerSound:play()
 end
 
 local function continueJump()
@@ -181,6 +204,10 @@ function playdate.update()
             continueJump()
         elseif not playdate.buttonIsPressed("A") and isJumping then
             currentJumpVelocity = -JUMP_VELOCITY * JUMP_CUT_SHORT_MULTIPLIER
+        end
+
+        if playdate.buttonJustPressed("B") then
+            shoot()
         end
 
         if not didMove then
