@@ -5,18 +5,34 @@ import "CoreLibs/timer"
 import "../Support/animatedimage"
 
 local graphics <const> = playdate.graphics
+local vector2D = playdate.geometry.vector2D
 
----@class playdate.graphics.sprite
+local min, max, abs, floor = math.min, math.max, math.abs, math.floor
+
+-- Constants
+local left, right = 1, 0 -- Facing Directions
+local onGround = true
+local dt = 0.05
+local GRAVITY_CONSTANT = 1200
+local JUMP_VELOCITY = -300
+local JUMP_DURATION = 0.1
+local JUMP_CUT_SHORT_MULTIPLIER = 0.5
+
+-- Player state
+---@class playdate.graphics.sprite 
 local player = nil
-
--- Constants:
-local left, right = 1, 0
+local playerVelocity = { x = 0, y = 0 }
+local isJumping = false
+local jumpStartTime = 0
+local currentJumpVelocity = 0
 
 -- Screen Dimensions
 local playdateHeight = 240
 local playdateWidth = 400
 
 local function createPlayer()
+
+    -- Creating Sprite
     player = graphics.sprite.new()
     player.direction = right
 
@@ -25,6 +41,11 @@ local function createPlayer()
     player.moving = AnimatedImage.new("Images/Duck/Gifs/Walking", {delay = 200, loop = true, first = 1, last = 2})
     
     player.currentAnimation = player.idle
+
+    local width, height = player.currentAnimation:getImage():scaledImage(player.ratio, player.ratio):getSize()
+    print("Player Dimensions Idle",width,height)
+
+    player.velocity = { x = 0, y = 0 }
     
     -- Verify we can get an image
     local initialImage = player.currentAnimation:getImage()
@@ -43,7 +64,6 @@ local function createFloor()
 
     -- Scale down to 32x32
     local scaledTile = tileImage:scaledImage(32 / 1024, 32 / 1024)
-    print(1024/32)
     assert(scaledTile, "⚠️ Failed to scale floor image")
 
     local tileWidth, tileHeight = scaledTile:getSize()
@@ -79,27 +99,90 @@ local function myGameSetUp()
     createBackground() -- Create Background
 end
 
+local function jump()
+    if onGround then
+        isJumping = true
+        jumpStartTime = playdate.getCurrentTimeMilliseconds()
+        currentJumpVelocity = JUMP_VELOCITY
+        onGround = false
+    end
+end
+
+local function continueJump()
+    local currentTime = playdate.getCurrentTimeMilliseconds()
+    local jumpTime = (currentTime - jumpStartTime) / 1000
+    
+    if jumpTime < JUMP_DURATION and playdate.buttonIsPressed("A") then
+        currentJumpVelocity = JUMP_VELOCITY
+    else
+        isJumping = false
+    end
+end
+
+local function applyPhysics()
+    -- Apply gravity
+    playerVelocity.y = playerVelocity.y + GRAVITY_CONSTANT * dt
+    
+    -- Apply jump force if jumping
+    if isJumping then
+        playerVelocity.y = currentJumpVelocity
+    end
+    
+    -- Get current position
+    local x, y = player:getPosition()
+    
+    -- Calculate new position
+    local newX = x + playerVelocity.x * dt
+    local newY = y + playerVelocity.y * dt
+    
+    -- Check ground collision
+    local groundY = playdateHeight - 32 - 44
+    if newY >= groundY then
+        newY = groundY
+        playerVelocity.y = 0
+        onGround = true
+        isJumping = false
+    end
+    
+    -- Update position
+    player:moveTo(newX, newY)
+end
+
 function playdate.update()
 
     -- Player Animation Values: 
     local didMove = false
 
     -- Player Stats
-    local movement = 4
-
-    
+    local speed = 4
     local function handleMovement()
+        local didMove = false
+        local speed = 120 -- pixels per second (higher because we're using velocity)
+        
+        -- Handle movement input
         if playdate.buttonIsPressed(playdate.kButtonLeft) then
             player.currentAnimation = player.moving
-            player:moveBy(-movement, 0)
+            playerVelocity.x = -speed
             player.direction = left
             didMove = true
         elseif playdate.buttonIsPressed(playdate.kButtonRight) then
             player.currentAnimation = player.moving
-            player:moveBy(movement, 0)
+            playerVelocity.x = speed
             player.direction = right
             didMove = true
+        else
+            playerVelocity.x = 0 -- Stop horizontal movement when no input
         end
+
+         -- Handle jumping
+        if playdate.buttonJustPressed("A") and onGround then
+            jump()
+        elseif playdate.buttonIsPressed("A") and isJumping then
+            continueJump()
+        elseif not playdate.buttonIsPressed("A") and isJumping then
+            currentJumpVelocity = -JUMP_VELOCITY * JUMP_CUT_SHORT_MULTIPLIER
+        end
+
         if not didMove then
             player.currentAnimation = player.idle
         end
@@ -107,6 +190,8 @@ function playdate.update()
 
     -- Movement Function
     handleMovement()
+    applyPhysics()
+  
     player:setImage(player.currentAnimation:getImage():scaledImage(player.ratio, player.ratio) , player.direction)
     
     
