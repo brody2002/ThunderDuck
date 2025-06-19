@@ -155,7 +155,6 @@ function playdate.update()
 
     -- Player Stats
     local speed = 4
-
     local function handleMovement()
         local didMove = false
         local speed = 120 -- pixels per second (higher because we're using velocity)
@@ -192,7 +191,7 @@ function playdate.update()
     -- Movement Function
     handleMovement()
     applyPhysics()
-
+  
     player:setImage(player.currentAnimation:getImage():scaledImage(player.ratio, player.ratio) , player.direction)
     
     
