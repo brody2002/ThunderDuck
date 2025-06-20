@@ -7,8 +7,6 @@ import "../Support/animatedimage"
 local graphics <const> = playdate.graphics
 local sound <const> = playdate.sound
 
-local min, max, abs, floor = math.min, math.max, math.abs, math.floor
-
 -- Constants
 local left, right = 1, 0 -- Facing Directions
 local dt = 0.05
@@ -111,9 +109,7 @@ local function createBackground()
 end
 
 local function myGameSetUp()
-
-    local ceil <const> = math.ceil
-
+    
     createPlayer() -- Create Player
 
     createFloor() -- Create Floor
