@@ -7,11 +7,8 @@ import "../Support/animatedimage"
 local graphics <const> = playdate.graphics
 local sound <const> = playdate.sound
 
-local min, max, abs, floor = math.min, math.max, math.abs, math.floor
-
 -- Constants
 local left, right = 1, 0 -- Facing Directions
-local onGround = true
 local dt = 0.05
 local GRAVITY_CONSTANT = 1200
 local JUMP_VELOCITY = -300
@@ -35,10 +32,17 @@ local function createPlayer()
     -- Creating Sprite
     player = graphics.sprite.new()
     player.direction = right
+    player.onGround = true
 
     player.ratio = 32/96
     player.idle = AnimatedImage.new("Images/Duck/Gifs/idle", {delay = 200, loop = true, first = 1, last = 2})
     player.moving = AnimatedImage.new("Images/Duck/Gifs/Walking", {delay = 200, loop = true, first = 1, last = 2})
+    player.crouch = graphics.image.new("Images/Duck/Sprites/Crouching/Crouching")
+    player.jump = graphics.image.new("Images/Duck/Sprites/Jumping/Jumping")
+
+    assert(player.idle, "Idle didn't load")
+    assert(player.jump, "Jump Image didn't load")
+    assert(player.crouch, "Crouch Image didn't load")
     
     player.currentAnimation = player.idle
 
@@ -105,9 +109,7 @@ local function createBackground()
 end
 
 local function myGameSetUp()
-
-    local ceil <const> = math.ceil
-
+    
     createPlayer() -- Create Player
 
     createFloor() -- Create Floor
@@ -118,12 +120,13 @@ local function myGameSetUp()
 end
 
 local function jump()
-    if onGround then
+    if player.onGround then
         isJumping = true
         jumpStartTime = playdate.getCurrentTimeMilliseconds()
         player.jumpSound:play()
+        player.currentAnimation = player.jump
         currentJumpVelocity = JUMP_VELOCITY
-        onGround = false
+        player.onGround = false
     end
 end
 
@@ -163,7 +166,7 @@ local function applyPhysics()
     if newY >= groundY then
         newY = groundY
         playerVelocity.y = 0
-        onGround = true
+        player.onGround = true
         isJumping = false
     end
     
@@ -171,13 +174,17 @@ local function applyPhysics()
     player:moveTo(newX, newY)
 end
 
+local function handleAnimations()
+    if player.currentAnimation == player.jump or player.currentAnimation == player.crouch then
+        -- Is a regular Image (not AnimatedImage)
+        player:setImage(player.currentAnimation:scaledImage(1, 1), player.direction)
+    else
+        -- Is a Gif (AnimatedImage)
+        player:setImage(player.currentAnimation:getImage():scaledImage(player.ratio, player.ratio), player.direction)
+    end
+end
+
 function playdate.update()
-
-    -- Player Animation Values: 
-    local didMove = false
-
-    -- Player Stats
-    local speed = 4
     local function handleMovement()
         local didMove = false
         local speed = 120 -- pixels per second (higher because we're using velocity)
@@ -197,8 +204,9 @@ function playdate.update()
             playerVelocity.x = 0 -- Stop horizontal movement when no input
         end
 
-         -- Handle jumping
-        if playdate.buttonJustPressed("A") and onGround then
+
+        -- Handle jumping
+        if playdate.buttonJustPressed("A") and player.onGround then
             jump()
         elseif playdate.buttonIsPressed("A") and isJumping then
             continueJump()
@@ -210,16 +218,22 @@ function playdate.update()
             shoot()
         end
 
-        if not didMove then
-            player.currentAnimation = player.idle
+        if not didMove and player.onGround then
+             -- Crouching
+            if playdate.buttonIsPressed(playdate.kButtonDown) then
+                player.currentAnimation = player.crouch
+            else
+                player.currentAnimation = player.idle
+            end
         end
     end
 
     -- Movement Function
     handleMovement()
     applyPhysics()
-  
-    player:setImage(player.currentAnimation:getImage():scaledImage(player.ratio, player.ratio) , player.direction)
+    
+    handleAnimations()
+    -- player:setImage(player.currentAnimation:getImage():scaledImage(player.ratio, player.ratio) , player.direction)
     
     
     graphics.sprite.update()
