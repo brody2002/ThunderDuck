@@ -191,12 +191,16 @@ function playdate.update()
         
         -- Handle movement input
         if playdate.buttonIsPressed(playdate.kButtonLeft) then
-            player.currentAnimation = player.moving
+            if player.onGround then
+                player.currentAnimation = player.moving
+            end
             playerVelocity.x = -speed
             player.direction = left
             didMove = true
         elseif playdate.buttonIsPressed(playdate.kButtonRight) then
-            player.currentAnimation = player.moving
+            if player.onGround then 
+                 player.currentAnimation = player.moving
+            end
             playerVelocity.x = speed
             player.direction = right
             didMove = true
