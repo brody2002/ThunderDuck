@@ -1,0 +1,7 @@
+return {
+    dt = 0.05,
+    GRAVITY_CONSTANT = 1200,
+    JUMP_VELOCITY = -300,
+    JUMP_DURATION = 0.1,
+    JUMP_CUT_SHORT_MULTIPLIER = 0.5
+}
