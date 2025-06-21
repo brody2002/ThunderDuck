@@ -8,10 +8,10 @@ local graphics <const> = playdate.graphics
 local sound <const> = playdate.sound
 
 -- Objects
-local Constants = import "Shared/playdateConstants"
+import "Shared/playdateConstants"
 
 
-local Stage = {}
+Stage = {}
 
 Stage.create = function()
     local self = {}
@@ -36,9 +36,9 @@ Stage.create = function()
         assert(scaledTile, "⚠️ Failed to scale floor image")
 
         local tileWidth, tileHeight = scaledTile:getSize()
-        local floorY = Constants.playdateHeight - tileHeight
+        local floorY = playdateConstants.playdateHeight - tileHeight
 
-        for x = 0, Constants.playdateWidth, tileWidth do
+        for x = 0, playdateConstants.playdateWidth, tileWidth do
             local tileSprite = graphics.sprite.new(scaledTile)
             tileSprite:moveTo(x + tileWidth / 2, floorY + tileHeight / 2)
             tileSprite:add()

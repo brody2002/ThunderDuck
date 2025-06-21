@@ -6,14 +6,13 @@ import "CoreLibs/timer"
 import "../../Support/animatedimage"
 
 -- ThunderDuck Imports  
-import "../Shared/playdateConstants"
-local Gravity <const> = import "../Shared/Gravity"
+import "./../Shared/playdateConstants"
+import "./../Shared/gravity"
 
 local graphics <const> = playdate.graphics
 local sound <const> = playdate.sound
 
-local Duck = {}
-
+Duck = {}
 
 Duck.create = function()
     -- Create the sprite object
@@ -26,7 +25,7 @@ Duck.create = function()
     -- Properties
     duck.direction = right
     duck.onGround = true
-    duck.ratio = 32/96
+    duck.ratio = 32/96 -- Ratio for Gifs 
     duck.velocity = { x = 0, y = 0 }
     
     -- Private state
@@ -37,22 +36,22 @@ Duck.create = function()
     
     -- Load animations
     duck.idleAnimation = AnimatedImage.new("Images/Duck/Gifs/idle", {delay = 200, loop = true, first = 1, last = 2})
-    duck.movingAnimation = AnimatedImage.new("Images/Duck/Gifs/Walking", {delay = 200, loop = true, first = 1, last = 2})
+    duck.walkingAnimation = AnimatedImage.new("Images/Duck/Gifs/Walking", {delay = 200, loop = true, first = 1, last = 2})
     duck.crouchAnimation = graphics.image.new("Images/Duck/Sprites/Crouching/Crouching")
     duck.jumpAnimation = graphics.image.new("Images/Duck/Sprites/Jumping/Jumping")
     
     duck.currentAnimation = duck.idleAnimation
 
-    local width, height = duck.currentAnimation:getImage():scaledImage(duck.ratio, duck.ratio):getSize()
+    duck.width, duck.height = duck.currentAnimation:getImage():scaledImage(duck.ratio, duck.ratio):getSize()
 
     -- Sound Effects
-    duck.jumpSound = sound.fileplayer.new("../Sounds/SoundEffects/Jump")
-    duck.lazerSound = sound.fileplayer.new("../Sounds/SoundEffects/Lazer")
+    duck.jumpSound = sound.fileplayer.new("Sounds/SoundEffects/Jump")
+    duck.lazerSound = sound.fileplayer.new("Sounds/SoundEffects/Lazer")
     
     -- Initial setup
     local initialImage = duck.currentAnimation:getImage()
     duck:setImage(initialImage)
-    local floorLevel = playdateConstants.playdateHeight - 32
+    local floorLevel = playdateConstants.playdateHeight - duck.height
     duck:moveTo(200, floorLevel - 44)
     duck:add()
     
@@ -62,8 +61,8 @@ Duck.create = function()
             isJumping = true
             jumpStartTime = playdate.getCurrentTimeMilliseconds()
             duck.jumpSound:play()
-            duck.currentAnimation = duck.jump
-            currentJumpVelocity = Gravity.JUMP_VELOCITY
+            duck.currentAnimation = duck.jumpAnimation
+            currentJumpVelocity = gravity.JUMP_VELOCITY
             duck.onGround = false
         end
     end
@@ -76,16 +75,16 @@ Duck.create = function()
         local currentTime = playdate.getCurrentTimeMilliseconds()
         local jumpTime = (currentTime - jumpStartTime) / 1000
         
-        if jumpTime < Gravity.JUMP_DURATION and playdate.buttonIsPressed("A") then
-            currentJumpVelocity = Gravity.JUMP_VELOCITY
+        if jumpTime < gravity.JUMP_DURATION and playdate.buttonIsPressed("A") then
+            currentJumpVelocity = gravity.JUMP_VELOCITY
         else
             isJumping = false
         end
     end
 
     duck.applyPhysics = function()
-        -- Apply Gravity
-        movementVelocity.y = movementVelocity.y + Gravity.GRAVITY_CONSTANT * Gravity.dt
+        -- Apply gravity
+        movementVelocity.y = movementVelocity.y + gravity.GRAVITY_CONSTANT * gravity.dt
         
         -- Apply jump force if jumping
         if isJumping then
@@ -96,8 +95,8 @@ Duck.create = function()
         local x, y = duck:getPosition()
         
         -- Calculate new position
-        local newX = x + movementVelocity.x * Gravity.dt
-        local newY = y + movementVelocity.y * Gravity.dt
+        local newX = x + movementVelocity.x * gravity.dt
+        local newY = y + movementVelocity.y * gravity.dt
         
         -- Check ground collision
         local groundY = playdateConstants.playdateHeight - 32 - 44
@@ -113,13 +112,13 @@ Duck.create = function()
     end
 
     duck.handleAnimations = function()
-        local imageToSet
-        if duck.currentAnimation == duck.jump or duck.currentAnimation == duck.crouchAnimation then
-            imageToSet = duck.currentAnimation:scaledImage(1, 1)
+        -- Is a static Image
+        if duck.currentAnimation == duck.jumpAnimation or duck.currentAnimation == duck.crouchAnimation then
+            duck:setImage(duck.currentAnimation:scaledImage(1,1), duck.direction)
         else
-            imageToSet = duck.currentAnimation:getImage():scaledImage(duck.ratio, duck.ratio)
+            -- Is a Gif (AnimatedImage)
+            duck:setImage(duck.currentAnimation:getImage():scaledImage(duck.ratio, duck.ratio), duck.direction)
         end
-        duck:setImage(imageToSet, duck.direction)
     end
 
     duck.handleMovement = function()
@@ -151,7 +150,7 @@ Duck.create = function()
         elseif playdate.buttonIsPressed("A") and isJumping then
             duck:continueJump()
         elseif not playdate.buttonIsPressed("A") and isJumping then
-            currentJumpVelocity = -Gravity.JUMP_VELOCITY * Gravity.JUMP_CUT_SHORT_MULTIPLIER
+            currentJumpVelocity = -gravity.JUMP_VELOCITY * gravity.JUMP_CUT_SHORT_MULTIPLIER
         end
 
         if playdate.buttonJustPressed("B") then

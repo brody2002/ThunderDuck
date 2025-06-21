@@ -1,4 +1,4 @@
-return {
+gravity =  {
     dt = 0.05,
     GRAVITY_CONSTANT = 1200,
     JUMP_VELOCITY = -300,
