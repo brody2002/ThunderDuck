@@ -51,8 +51,7 @@ Duck.create = function()
     -- Initial setup
     local initialImage = duck.currentAnimation:getImage()
     duck:setImage(initialImage)
-    local floorLevel = playdateConstants.playdateHeight - duck.height
-    duck:moveTo(200, floorLevel - 44)
+    duck:moveTo(200, playdateConstants.floorLevel - duck.height)
     duck:add()
     
     -- Define functions as properties of the duck object
