@@ -8,6 +8,7 @@ import "CoreLibs/timer"
 import "../Support/animatedImage"
 import "Stages/stage"
 import "Player/duck"
+import "Enemies/frog"
 
 local graphics <const> = playdate.graphics
 
@@ -21,6 +22,7 @@ end
 
 function playdate.update()
     duck:updateFrame()
+    frog:updateFrame()
     graphics.sprite.update()
     playdate.timer.updateTimers()
 end
