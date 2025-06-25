@@ -27,6 +27,7 @@ Duck.create = function()
     duck.onGround = true
     duck.ratio = 32/96 -- Ratio for Gifs 
     duck.velocity = { x = 0, y = 0 }
+    duck.setZIndex(duck, 1000)
     
     -- Private state
     local isJumping = false
@@ -51,8 +52,7 @@ Duck.create = function()
     -- Initial setup
     local initialImage = duck.currentAnimation:getImage()
     duck:setImage(initialImage)
-    local floorLevel = playdateConstants.playdateHeight - duck.height
-    duck:moveTo(200, floorLevel - 44)
+    duck:moveTo(200, playdateConstants.floorLevel - duck.height)
     duck:add()
     
     -- Define functions as properties of the duck object
@@ -171,8 +171,9 @@ Duck.create = function()
         duck:applyPhysics()
         duck:handleAnimations()
     end
-
+    
     return duck
+    
 end
 
 return Duck
