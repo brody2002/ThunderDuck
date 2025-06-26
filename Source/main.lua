@@ -10,13 +10,22 @@ import "Stages/stage"
 import "Player/duck"
 import "Enemies/Po/po"
 import "Enemies/Frog/frog"
+import "UI/healthbar"
 
 local graphics <const> = playdate.graphics
 
+-- Player
 local duck = Duck.create()
-local stage1 = Stage.create()
+
+-- Enemies
 local po = Po.create()
 local frog = Frog.create()
+
+-- Stage
+local stage1 = Stage.create()
+
+-- UI
+local healthBar = HealthBar.create()
 
 
 local function myGameSetUp()
@@ -29,6 +38,9 @@ function playdate.update()
     duck:updateFrame()
     po:updateFrame()
     frog:updateFrame()
+
+    -- UI
+    healthBar.drawHealth()
     
     graphics.sprite.update()
     playdate.timer.updateTimers()

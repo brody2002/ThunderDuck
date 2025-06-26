@@ -7,20 +7,21 @@ import "../../Support/animatedImage"
 
 local graphics <const> = playdate.graphics
 
-Chicken = {}
+local Chicken = {}
 
 Chicken.create = function ()
     local chicken = {}
     ---@class playdate.graphics.sprite
     chicken.sprite = graphics.sprite.new()
-    chicken.ratio = 1
+    chicken.ratio = 1/32
     
-    chicken.full = graphics.image.new("UI/Assets/ChickenFull")
-    chicken.half = graphics.image.new("UI/Assets/ChickenHalf")
+    chicken.full = graphics.image.new("UI/Assets/ChickenFull"):scaledImage(chicken.ratio)
+    chicken.half = graphics.image.new("UI/Assets/ChickenHalf"):scaledImage(chicken.ratio)
+    chicken.setZIndex = 10
     chicken.currentImage = chicken.full
+    
+    -- Dimensions AFTER scaling
     chicken.width, chicken.height = chicken.currentImage:scaledImage(chicken.ratio, chicken.ratio):getSize()
-    print("Width: "..chicken.width.."Height: "..chicken.height)
-
     
     return chicken
 end
@@ -28,15 +29,39 @@ end
 HealthBar = {}
 
 HealthBar.create = function ()
-    local healthbar = {}
+    local healthBar = {}
     local chickenSprite = Chicken.create()
-    healthbar.hp = 6 -- One Whole Chicken per 2 hp points
+    healthBar.hp = 6 -- One Whole Chicken per 2 hp points
 
-    -- Methods: 
-    healthbar.drawHealth = function ()
-        -- if health bar is 1, draw half chicken from top left corner
-        -- if health bar is 3, draw 1 chicken and 1 half chicken starting from left to right
-        -- when the value changes this needs to be redrawn. Try to only update this when needed 
+    -- Position of the health bar
+    healthBar.x = 200
+    healthBar.y = 120
+
+    -- Draws Full Chicken for every 2 hp points
+    -- Draws Half Chicken if remaining 1hp point
+    healthBar.drawHealth = function ()
+        local hpLeft = healthBar.hp
+        local offsetX = 0
+
+        while hpLeft > 0 do
+            ---@class graphics.image
+            local image
+            if hpLeft >= 2 then
+                image = chickenSprite.full
+                hpLeft -= 2
+            else
+                image = chickenSprite.half
+                hpLeft = 0
+            end
+
+            -- function playdate.graphics.image:draw(x, y, flip, sourceRect)
+            -- image:draw(healthBar.x + offsetX, healthBar.y)
+            image:draw(healthBar.x + offsetX, healthBar.y)
+            offsetX += chickenSprite.width + 20 -- 20 pixel Gap between Chicken 
+        end
     end
+
+    return healthBar
 end
 
+return HealthBar
