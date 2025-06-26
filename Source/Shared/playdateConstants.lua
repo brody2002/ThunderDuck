@@ -1,6 +1,6 @@
 local height = 240
 local width = 400
-local height_constant = 44
+local height_constant = 57
 
 playdateConstants = {
     playdateHeight = height,
