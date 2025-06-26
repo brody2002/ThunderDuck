@@ -22,8 +22,10 @@ local function myGameSetUp()
 end
 
 function playdate.update()
+    -- Characters
     duck:updateFrame()
     po:updateFrame()
+
     graphics.sprite.update()
     playdate.timer.updateTimers()
 end
