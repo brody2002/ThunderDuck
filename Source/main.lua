@@ -8,11 +8,13 @@ import "CoreLibs/timer"
 import "../Support/animatedImage"
 import "Stages/stage"
 import "Player/duck"
+import "Enemies/Po/po"
 
 local graphics <const> = playdate.graphics
 
 local duck = Duck.create()
 local stage1 = Stage.create()
+local po = Po.create()
 
 
 local function myGameSetUp()
@@ -21,6 +23,7 @@ end
 
 function playdate.update()
     duck:updateFrame()
+    po:updateFrame()
     graphics.sprite.update()
     playdate.timer.updateTimers()
 end
