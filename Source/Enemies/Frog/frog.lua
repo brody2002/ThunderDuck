@@ -50,9 +50,9 @@ Frog.create = function()
     tongueExtra:setImage(tongueExtra.defaultImage)
     spitball:setImage(spitball.defaultImage)
 
-    frog:setZIndex(playdateConstants.frogZIndex)
-    tongueExtra:setZIndex(playdateConstants.tongueZIndex)
-    spitball:setZIndex(playdateConstants.spitballZIndex)
+    frog:setZIndex(100)
+    tongueExtra:setZIndex(101)
+    spitball:setZIndex(150)
 
     frog.enterSFX = sound.fileplayer.new("Sounds/SoundEffects/CTMR")
     
