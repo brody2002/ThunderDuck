@@ -25,7 +25,6 @@ Duck.create = function()
     -- Properties
     duck.direction = right
     duck.onGround = true
-    duck.ratio = 32/96 -- Ratio for Gifs 
     duck.velocity = { x = 0, y = 0 }
     duck.setZIndex(duck, 1000)
     
@@ -36,23 +35,23 @@ Duck.create = function()
     local movementVelocity = { x = 0, y = 0 }
     
     -- Load animations
-    duck.idleAnimation = AnimatedImage.new("Images/Duck/Gifs/idle", {delay = 200, loop = true, first = 1, last = 2})
-    duck.walkingAnimation = AnimatedImage.new("Images/Duck/Gifs/Walking", {delay = 200, loop = true, first = 1, last = 2})
+    duck.idleAnimation = AnimatedImage.new("Images/Duck/Gifs/Idle-1", {delay = 200, loop = true, first = 1, last = 2})
+    duck.walkingAnimation = AnimatedImage.new("Images/Duck/Gifs/Walking-1", {delay = 200, loop = true, first = 1, last = 2})
     duck.crouchAnimation = graphics.image.new("Images/Duck/Sprites/Crouching/Crouching")
     duck.jumpAnimation = graphics.image.new("Images/Duck/Sprites/Jumping/Jumping")
     
     duck.currentAnimation = duck.idleAnimation
 
-    duck.width, duck.height = duck.currentAnimation:getImage():scaledImage(duck.ratio, duck.ratio):getSize()
-
     -- Sound Effects
     duck.jumpSound = sound.fileplayer.new("Sounds/SoundEffects/Jump")
     duck.lazerSound = sound.fileplayer.new("Sounds/SoundEffects/Lazer")
-    
+
     -- Initial setup
-    local initialImage = duck.currentAnimation:getImage()
-    duck:setImage(initialImage)
-    duck:moveTo(200, playdateConstants.floorLevel - duck.height)
+    -- For some reason the image is scaled down to 2/3 size ??????????????????
+    local duckHeight = 60
+    
+    duck:setImage(duck.currentAnimation:getImage())
+    duck:moveTo(playdateConstants.playdateWidth / 2, playdateConstants.floorLevel - duckHeight)
     duck:add()
     
     -- Define functions as properties of the duck object
@@ -85,7 +84,7 @@ Duck.create = function()
     duck.applyPhysics = function()
         -- Apply gravity
         movementVelocity.y = movementVelocity.y + gravity.GRAVITY_CONSTANT * gravity.dt
-        
+
         -- Apply jump force if jumping
         if isJumping then
             movementVelocity.y = currentJumpVelocity
@@ -97,13 +96,16 @@ Duck.create = function()
         -- Calculate new position
         local newX = x + movementVelocity.x * gravity.dt
         local newY = y + movementVelocity.y * gravity.dt
-        
+
         -- Check ground collision
-        local groundY = playdateConstants.playdateHeight - 32 - 44
-        if newY >= groundY then
+        local groundY = playdateConstants.floorLevel - duckHeight
+        if newY > groundY then
             newY = groundY
             movementVelocity.y = 0
             duck.onGround = true
+            isJumping = false
+        elseif duck.onGround == true then
+            newY = groundY
             isJumping = false
         end
         
@@ -114,10 +116,10 @@ Duck.create = function()
     duck.handleAnimations = function()
         -- Is a static Image
         if duck.currentAnimation == duck.jumpAnimation or duck.currentAnimation == duck.crouchAnimation then
-            duck:setImage(duck.currentAnimation:scaledImage(1,1), duck.direction)
+            duck:setImage(duck.currentAnimation, duck.direction)
         else
             -- Is a Gif (AnimatedImage)
-            duck:setImage(duck.currentAnimation:getImage():scaledImage(duck.ratio, duck.ratio), duck.direction)
+            duck:setImage(duck.currentAnimation:getImage(), duck.direction)
         end
     end
 
@@ -171,7 +173,6 @@ Duck.create = function()
         duck:applyPhysics()
         duck:handleAnimations()
     end
-    
     return duck
     
 end

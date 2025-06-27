@@ -23,6 +23,7 @@ local frog = Frog.create()
 
 -- Stage
 local stage1 = Stage.create()
+local frog = Frog.create()
 
 -- UI
 local healthBar = HealthBar.create()
