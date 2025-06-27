@@ -40,7 +40,6 @@ function playdate.update()
     frog:updateFrame()
 
     if playdate.buttonJustPressed("B") then
-        print("DAMAGE TAKEN")
         healthBar.damageReceived()
     end
 
