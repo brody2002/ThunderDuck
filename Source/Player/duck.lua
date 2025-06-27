@@ -26,7 +26,7 @@ Duck.create = function()
     duck.direction = right
     duck.onGround = true
     duck.velocity = { x = 0, y = 0 }
-    duck:setZIndex(playdateConstants.duckZIndex)
+    duck.setZIndex(duck, 1000)
     
     -- Private state
     local isJumping = false
