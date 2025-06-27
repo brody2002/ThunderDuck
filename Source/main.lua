@@ -19,7 +19,6 @@ local frog = Frog.create()
 
 local function myGameSetUp()
     stage1:setupStage()
-    frog:initializeMovement()
 end
 
 function playdate.update()
