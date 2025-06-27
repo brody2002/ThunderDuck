@@ -27,10 +27,10 @@ local stage1 = Stage.create()
 -- UI
 local healthBar = HealthBar.create()
 
-
 local function myGameSetUp()
     stage1:setupStage()
     frog:initializeMovement()
+    healthBar.drawHealth()
 end
 
 function playdate.update()
@@ -39,9 +39,12 @@ function playdate.update()
     po:updateFrame()
     frog:updateFrame()
 
+    if playdate.buttonJustPressed("B") then
+        print("DAMAGE TAKEN")
+        healthBar.damageReceived()
+    end
+
     -- UI
-    healthBar.drawHealth()
-    
     graphics.sprite.update()
     playdate.timer.updateTimers()
 end
