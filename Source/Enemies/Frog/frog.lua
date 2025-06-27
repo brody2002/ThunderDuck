@@ -58,9 +58,9 @@ Frog.create = function()
     
     -- Don't know WHY THE FUCK there need to be scalars on these but they are necessary AFAIK
     local frogWidth = 96
-    local frogHeight = 96
+    local frogHeight = 96 * 7/6
     local frogWidthPadding = 29
-    local frogHeightPadding = 70
+    local frogHeightPadding = 70 * 5/6
     local extraTonguePadding = 66 + 96
     local spitballVelocity = 60
     frog.tonguePadding = 16
@@ -278,9 +278,9 @@ Frog.create = function()
                 end
                 frog.patternCounter = 0
                 frog.patternStage += 1
-                frog.attackDelay = math.random(20, 35)
-                frog.jumpVelocity = math.random(-110, -60)
-                movementVelocity.x = math.random(35, 55)
+                frog.attackDelay = math.random(0, 25)
+                frog.jumpVelocity = math.random(-140, -110)
+                movementVelocity.x = math.random(90, 110)
                 initialDirection = frog.direction
             end
 
@@ -318,7 +318,6 @@ Frog.create = function()
         elseif frog.stageEntered == false then
             frog:enterMove()
         end
-        print(frog:getPosition())
 
     end
 

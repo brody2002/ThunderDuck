@@ -48,7 +48,7 @@ Duck.create = function()
 
     -- Initial setup
     -- For some reason the image is scaled down to 2/3 size ??????????????????
-    local duckHeight = 64
+    local duckHeight = 60
     
     duck:setImage(duck.currentAnimation:getImage())
     duck:moveTo(playdateConstants.playdateWidth / 2, playdateConstants.floorLevel - duckHeight)
