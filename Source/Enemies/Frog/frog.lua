@@ -35,13 +35,13 @@ Frog.create = function()
     
 
     -- Load animations (Needs work)
-    frog.defaultImage = graphics.image.new("Images/Frog/frog-1-2"):scaledImage(2)
-    frog.tongueAttackImage = graphics.image.new("Images/Frog/frog-2-3"):scaledImage(2)
+    frog.defaultImage = graphics.image.new("Images/Frog/frog"):scaledImage(2)
+    frog.tongueAttackImage = graphics.image.new("Images/Frog/frogAttack"):scaledImage(2)
     assert(frog.defaultImage, "Frog failed to load")
     
-    tongueExtra.defaultImage = graphics.image.new("Images/Frog/frog-4-3"):scaledImage(2)
+    tongueExtra.defaultImage = graphics.image.new("Images/Frog/frogTongue"):scaledImage(2)
 
-    spitball.defaultImage = graphics.image.new("Images/Frog/frog-spitball-1"):scaledImage(2)
+    spitball.defaultImage = graphics.image.new("Images/Frog/frogSpitball"):scaledImage(2)
 
     -- Sound effects (N/A)
 
@@ -58,15 +58,15 @@ Frog.create = function()
     
     -- Don't know WHY THE FUCK there need to be scalars on these but they are necessary AFAIK
     local frogWidth = 96
-    local frogHeight = 96 * 7/6
+    local frogHeight = 96
     local frogWidthPadding = 29
-    local frogHeightPadding = 70 * 2/3
+    local frogHeightPadding = 70
     local extraTonguePadding = 66 + 96
     local spitballVelocity = 60
     frog.tonguePadding = 16
 
     local groundY = playdateConstants.floorLevel - frogHeight
-    frog:moveTo(-1000, -1000)
+    frog:moveTo(1000, groundY)
     frog:add()
 
     frog.patternCounter = 0
@@ -318,6 +318,7 @@ Frog.create = function()
         elseif frog.stageEntered == false then
             frog:enterMove()
         end
+        print(frog:getPosition())
 
     end
 
