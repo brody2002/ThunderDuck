@@ -12,6 +12,8 @@ class("Duck").extends(Character)
 function Duck:init(spawnX, groundY)
     self.ratio = 32 / 96
     self.weaponHeight = 38
+    self.weaponRotationStep = 5
+    self.weaponAngle = 45
     self.idleAnimation = AnimatedImage.new(
         "Images/Duck/Gifs/idle",
         { delay = 200, loop = true, first = 1, last = 2 }
@@ -65,30 +67,63 @@ function Duck:init(spawnX, groundY)
 
     local _, mjollnirSourceHeight = mjollnirSource:getSize()
     local weaponScale = self.weaponHeight / mjollnirSourceHeight
-    self.weaponImageRight = mjollnirSource:rotatedImage(45, weaponScale)
-    self.weaponImageLeft = mjollnirSource:rotatedImage(-45, weaponScale)
-    self.weaponSprite = graphics.sprite.new(self.weaponImageRight)
+    local weaponImage = mjollnirSource:scaledImage(weaponScale, weaponScale)
+    local weaponWidth, weaponHeight = weaponImage:getSize()
+
+    -- Put the bottom of the handle at the center of a transparent canvas.
+    -- Rotating this canvas keeps that grip point pinned to Duck's hand.
+    local pivotCanvasSize = self.weaponHeight * 2 + 4
+    local pivot = pivotCanvasSize / 2
+    self.weaponPivotImage = graphics.image.new(pivotCanvasSize, pivotCanvasSize)
+    graphics.pushContext(self.weaponPivotImage)
+        weaponImage:draw(
+            math.floor(pivot - weaponWidth / 2),
+            math.floor(pivot - weaponHeight)
+        )
+    graphics.popContext()
+
+    self.weaponImageCache = {}
+    self.weaponSprite = graphics.sprite.new(self:getWeaponImage(self.weaponAngle))
     self.weaponSprite:setZIndex(self:getZIndex() + 100)
     self.weaponSprite:add()
     self:updateWeapon()
 end
 
+function Duck:getWeaponImage(angle)
+    local step = self.weaponRotationStep
+    local snappedAngle = (math.floor((angle + step / 2) / step) * step) % 360
+
+    if not self.weaponImageCache[snappedAngle] then
+        self.weaponImageCache[snappedAngle] = self.weaponPivotImage:rotatedImage(snappedAngle)
+    end
+
+    return self.weaponImageCache[snappedAngle]
+end
+
 function Duck:updateWeapon()
-    local horizontalOffset = 19
-    local verticalOffset = -33
-    local weaponImage = self.weaponImageRight
+    local horizontalOffset = 7
+    local verticalOffset = -20
 
     if self.currentAnimation == self.crouchAnimation then
-        verticalOffset = -28
+        verticalOffset = -15
     end
 
     if self.direction == graphics.kImageFlippedX then
         horizontalOffset = -horizontalOffset
-        weaponImage = self.weaponImageLeft
+    end
+
+    if playdate.isCrankDocked() then
+        if self.direction == graphics.kImageFlippedX then
+            self.weaponAngle = 315
+        else
+            self.weaponAngle = 45
+        end
+    else
+        self.weaponAngle = playdate.getCrankPosition()
     end
 
     self.weaponSprite:setZIndex(self:getZIndex() + 100)
-    self.weaponSprite:setImage(weaponImage)
+    self.weaponSprite:setImage(self:getWeaponImage(self.weaponAngle))
     self.weaponSprite:moveTo(self.x + horizontalOffset, self.y + verticalOffset)
 end
 
