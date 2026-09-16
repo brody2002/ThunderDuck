@@ -39,10 +39,6 @@ function playdate.update()
     po:updateFrame(deltaTime)
     frog:updateFrame(deltaTime)
 
-    if playdate.buttonJustPressed(playdate.kButtonB) then
-        healthBar.damageReceived()
-    end
-
     graphics.sprite.update()
     playdate.timer.updateTimers()
 end
