@@ -1,130 +1,75 @@
--- Playdate Imports
-import "CoreLibs/object"
 import "CoreLibs/graphics"
-import "CoreLibs/sprites"
-import "CoreLibs/timer"
-import "../Support/animatedimage"
 
-
--- ThunderDuck Imports  
+import "../../Characters/character"
 import "../../Shared/playdateConstants"
-import "../../Shared/gravity"
 
 local graphics <const> = playdate.graphics
-local sound <const> = playdate.sound
 
-Frog = {}
+class("Frog").extends(Character)
 
-Frog.create = function()
-    -- create the sprite
-    ---@class playdate.graphics.sprite
-    local frog = graphics.sprite.new()
+function Frog:init(spawnX, groundY)
+    self.ratio = 28 / 96
+    self.jumpTimer = 0
+    self.frogImage = graphics.image.new("Images/frog"):scaledImage(self.ratio)
+    assert(self.frogImage, "Frog failed to load")
+    local frogWidth, frogHeight = self.frogImage:getSize()
 
-    -- Directions
-    local left, right = 1, 0 
+    Frog.super.init(self, {
+        name = "Frog",
+        image = self.frogImage,
+        spawnX = spawnX or 320,
+        groundY = groundY,
+        team = "enemy",
+        tag = playdateConstants.tags.enemy,
+        zIndex = 500,
+        direction = graphics.kImageFlippedX,
+        stats = {
+            speed = 80,
+            gravityScale = 1,
+            jumpVelocity = -300,
+            jumpInterval = 2,
+            maximumFallSpeed = 450,
+            maxHealth = 3,
+            attackPower = 1,
+            defense = 0,
+            attackCooldown = 1,
+            knockbackResistance = 0,
+            startsOnGround = true,
+            collider = {
+                width = frogWidth,
+                height = frogHeight
+            }
+        }
+    })
 
-    -- Properties
-    frog.direction = left
-    frog.onGround = true
-    frog.velocity = { x = 0, y = 0}
-    frog.ratio = 28/96
+    self:setMovement(-1)
+end
 
-    local jumpDelay = 0
-    local movementVelocity = { x = 0, y = 0 }
-    local x, y = frog:getPosition()
-    
-
-    -- Load animations (Needs work)
-    local frogImage = graphics.image.new("Images/frog"):scaledImage(frog.ratio)
-    assert(frogImage, "Frog failed to load")
-
-    frog.width, frog.height = frogImage:getSize()
-
-    -- Sound effects (N/A)
-
-    -- Initial setup (Needs work)
-    frog:setImage(frogImage)
-    -- DON'T KNOW WHY frog.height NEEDS TO BE DIVIDED BY 4
-    frog:moveTo(300, playdateConstants.floorLevel - frog.height/4)
-    frog:add()
-
-    local groundY = playdateConstants.floorLevel - frog.height/4
-
-    -- Define functions where things happen LOL
-
-    frog.applyPhysics = function ()
-
-        -- Update current position
-        x, y = frog:getPosition()
-
-        -- Apply gravity
-        local newX = x + movementVelocity.x * gravity.dt
-        local newY = y + movementVelocity.y * gravity.dt
-
-        -- Check ground collision
-        if newY < 0 then
-            newY = 0
-            movementVelocity.y = 80
-        elseif newY >= groundY then
-            newY = groundY
-            movementVelocity.y = 0
-            frog.onGround = true
-        end
-
-        -- Check side collision
-        -- THERE NEEDS TO BE SOME ADJUSTMENT ON THE FROG SPRITE WIDTH AND I DON'T KNOW WHY :(
-        -- frog.width / 4 IS NOT PERFECT BUT IT'S CLOSE
-        if newX >= playdateConstants.playdateWidth - frog.width / 4 then
-            newX = playdateConstants.playdateWidth - frog.width / 4
-            movementVelocity.x = movementVelocity.x * -1
-            frog.direction = left
-        elseif newX <= 0 + frog.width / 4 then
-            newX = 0 + frog.width / 4
-            movementVelocity.x = movementVelocity.x * -1
-            frog.direction = right
-        end
-
-        -- Update position
-        frog:moveTo(newX, newY)
-
+function Frog:beforePhysics(deltaTime)
+    if not self.onGround then
+        return
     end
 
-    frog.setDirection = function ()
-        if frog.direction == left then
-            frog:setImage(frogImage)
-        elseif frog.direction == right then
-            frog:setImage(frogImage, "flipX")
-        end
+    self.jumpTimer += deltaTime
+
+    if self.jumpTimer >= self.stats.jumpInterval then
+        self.jumpTimer = 0
+        self:jump()
     end
+end
 
-    frog.jumpCycle = function ()
-        -- Increment delay if frog is on ground
-        if frog.onGround == true then
-            jumpDelay = jumpDelay + 1
-        end
-        -- Set velocity to going up and set not on ground (jump the frog lol)
-        if jumpDelay / 100 == 1 then
-            jumpDelay = 0
-            movementVelocity.y = -120
-            frog.onGround = false
-        end
+function Frog:afterPhysics(_deltaTime, physicsEvents)
+    if physicsEvents.hitLeftBoundary or physicsEvents.blockedMovingLeft then
+        self:setMovement(1)
+        self.direction = graphics.kImageUnflipped
+    elseif physicsEvents.hitRightBoundary or physicsEvents.blockedMovingRight then
+        self:setMovement(-1)
+        self.direction = graphics.kImageFlippedX
     end
+end
 
-    frog.initializeMovement = function ()
-        movementVelocity.x = -80
-        frog.direction = left
-    end
-
-    frog.updateFrame = function ()
-
-        frog:applyPhysics()
-        frog.setDirection()
-        frog:jumpCycle()
-
-    end
-
-    return frog
-
+function Frog:updateAnimation(_deltaTime)
+    self:setImage(self.frogImage, self.direction)
 end
 
 return Frog

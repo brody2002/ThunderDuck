@@ -1,69 +1,106 @@
-import "CoreLibs/object"
 import "CoreLibs/graphics"
 import "CoreLibs/sprites"
-import "CoreLibs/timer"
-import "../Support/animatedimage"
+
+import "Shared/playdateConstants"
 
 local graphics <const> = playdate.graphics
 local sound <const> = playdate.sound
 
--- Objects
-import "Shared/playdateConstants"
-
-
 Stage = {}
 
-Stage.create = function()
-    local self = {}
-    function self:setupAudio()
-        -- Create a fileplayer for your soundtrack
-        local soundtrack = sound.fileplayer.new("Sounds/SoundTracks/SoundTrack")  -- Assumes your file is in Sounds/soundtrack.wav
-        if soundtrack then
-            -- Set to loop when it reaches the end
-            soundtrack:setLoopRange(0, soundtrack:getLength())
-            soundtrack:play(0)  -- Play immediately from position 0
-        else
-            print("⚠️ Couldn't load soundtrack")
-        end
-    end
+local function makeTiledPlatformImage(tileImage, width, height)
+    local platformImage = graphics.image.new(width, height)
+    local tileWidth, tileHeight = tileImage:getSize()
 
-    function self:createFloor()
-        local tileImage = graphics.image.new("Images/stoneFloor") -- 1024x1024
-        assert(tileImage, "⚠️ Couldn't load stoneFloor image")
-
-        -- Scale down to 32x32
-        local scaledTile = tileImage:scaledImage(32 / 1024, 32 / 1024)
-        assert(scaledTile, "⚠️ Failed to scale floor image")
-
-        local tileWidth, tileHeight = scaledTile:getSize()
-        local floorY = playdateConstants.playdateHeight - tileHeight
-
-        for x = 0, playdateConstants.playdateWidth, tileWidth do
-            local tileSprite = graphics.sprite.new(scaledTile)
-            tileSprite:moveTo(x + tileWidth / 2, floorY + tileHeight / 2)
-            tileSprite:add()
-        end
-
-    end
-
-    function self:createBackground() 
-        local backgroundImage = graphics.image.new("Images/mountain")
-        assert(backgroundImage)
-
-        graphics.sprite.setBackgroundDrawingCallback(
-            function(x, y, width, height)
-                backgroundImage:draw( 0, 0 )
+    graphics.pushContext(platformImage)
+        for y = 0, height - 1, tileHeight do
+            for x = 0, width - 1, tileWidth do
+                tileImage:draw(x, y)
             end
+        end
+    graphics.popContext()
+
+    return platformImage
+end
+
+function Stage.create()
+    local stage = {
+        platforms = {},
+        platformDefinitions = {
+            {
+                x = 0,
+                y = playdateConstants.floorLevel,
+                width = playdateConstants.playdateWidth,
+                height = playdateConstants.floorHeight,
+                tileSize = 32,
+                imagePath = "Images/stoneFloor"
+            }
+        }
+    }
+
+    function stage:createPlatform(definition)
+        local sourceImage = graphics.image.new(definition.imagePath)
+        assert(sourceImage, "Couldn't load platform image: " .. definition.imagePath)
+
+        local sourceWidth, sourceHeight = sourceImage:getSize()
+        local tileImage = sourceImage:scaledImage(
+            definition.tileSize / sourceWidth,
+            definition.tileSize / sourceHeight
         )
+        assert(tileImage, "Couldn't scale platform image: " .. definition.imagePath)
+
+        -- Tile once into a single image instead of keeping one sprite per tile.
+        local platformImage = makeTiledPlatformImage(tileImage, definition.width, definition.height)
+        local platform = graphics.sprite.new(platformImage)
+        platform:setCenter(0, 0)
+        platform:moveTo(definition.x, definition.y)
+        platform:setCollideRect(0, 0, definition.width, definition.height)
+        platform:setTag(playdateConstants.tags.platform)
+        platform:setZIndex(100)
+        platform.isPlatform = true
+        platform:add()
+
+        table.insert(stage.platforms, platform)
+        return platform
     end
 
-    function self:setupStage()
-        self:createFloor()
-        self:createBackground()
-        self:setupAudio()
+    function stage:createPlatforms()
+        for _, definition in ipairs(stage.platformDefinitions) do
+            stage:createPlatform(definition)
+        end
     end
 
-    return self
+    function stage:createBackground()
+        local backgroundImage = graphics.image.new("Images/mountain")
+        assert(backgroundImage, "Couldn't load mountain background")
+
+        graphics.sprite.setBackgroundDrawingCallback(function()
+            backgroundImage:draw(0, 0)
+        end)
+    end
+
+    function stage:setupAudio()
+        stage.soundtrack = sound.fileplayer.new("Sounds/SoundTracks/SoundTrack")
+
+        if stage.soundtrack then
+            stage.soundtrack:setLoopRange(0, stage.soundtrack:getLength())
+            stage.soundtrack:play(0)
+        else
+            print("Couldn't load soundtrack")
+        end
+    end
+
+    function stage:getFloorY()
+        return stage.platformDefinitions[1].y
+    end
+
+    function stage:setupStage()
+        stage:createBackground()
+        stage:createPlatforms()
+        stage:setupAudio()
+    end
+
+    return stage
 end
 
 return Stage

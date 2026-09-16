@@ -1,179 +1,151 @@
--- Playdate Imports
-import "CoreLibs/object"
 import "CoreLibs/graphics"
-import "CoreLibs/sprites"
-import "CoreLibs/timer"
 import "../../Support/animatedimage"
 
--- ThunderDuck Imports  
-import "./../Shared/playdateConstants"
-import "./../Shared/gravity"
+import "../Characters/character"
+import "../Shared/playdateConstants"
 
 local graphics <const> = playdate.graphics
 local sound <const> = playdate.sound
 
-Duck = {}
+class("Duck").extends(Character)
 
-Duck.create = function()
-    -- Create the sprite object
-    ---@class playdate.graphics.sprite
-    local duck = graphics.sprite.new()
-    
-    -- Directions
-    local left, right = 1, 0 
-    
-    -- Properties
-    duck.direction = right
-    duck.onGround = true
-    duck.ratio = 32/96 -- Ratio for Gifs 
-    duck.velocity = { x = 0, y = 0 }
-    duck.setZIndex(duck, 1000)
-    
-    -- Private state
-    local isJumping = false
-    local jumpStartTime = 0
-    local currentJumpVelocity = 0
-    local movementVelocity = { x = 0, y = 0 }
-    
-    -- Load animations
-    duck.idleAnimation = AnimatedImage.new("Images/Duck/Gifs/idle", {delay = 200, loop = true, first = 1, last = 2})
-    duck.walkingAnimation = AnimatedImage.new("Images/Duck/Gifs/Walking", {delay = 200, loop = true, first = 1, last = 2})
-    duck.crouchAnimation = graphics.image.new("Images/Duck/Sprites/Crouching/Crouching")
-    duck.jumpAnimation = graphics.image.new("Images/Duck/Sprites/Jumping/Jumping")
-    
-    duck.currentAnimation = duck.idleAnimation
+function Duck:init(spawnX, groundY)
+    self.ratio = 32 / 96
+    self.weaponHeight = 38
+    self.idleAnimation = AnimatedImage.new(
+        "Images/Duck/Gifs/idle",
+        { delay = 200, loop = true, first = 1, last = 2 }
+    )
+    self.walkingAnimation = AnimatedImage.new(
+        "Images/Duck/Gifs/Walking",
+        { delay = 200, loop = true, first = 1, last = 2 }
+    )
+    self.crouchAnimation = graphics.image.new("Images/Duck/Sprites/Crouching/Crouching")
+    self.jumpAnimation = graphics.image.new("Images/Duck/Sprites/Jumping/Jumping")
 
-    duck.width, duck.height = duck.currentAnimation:getImage():scaledImage(duck.ratio, duck.ratio):getSize()
+    assert(self.idleAnimation and self.walkingAnimation, "Duck animation failed to load")
+    assert(self.crouchAnimation and self.jumpAnimation, "Duck image failed to load")
 
-    -- Sound Effects
-    duck.jumpSound = sound.fileplayer.new("Sounds/SoundEffects/Jump")
-    duck.lazerSound = sound.fileplayer.new("Sounds/SoundEffects/Lazer")
-    
-    -- Initial setup
-    local initialImage = duck.currentAnimation:getImage()
-    duck:setImage(initialImage)
-    duck:moveTo(200, playdateConstants.floorLevel - duck.height)
-    duck:add()
-    
-    -- Define functions as properties of the duck object
-    duck.jump = function()
-        if duck.onGround then
-            isJumping = true
-            jumpStartTime = playdate.getCurrentTimeMilliseconds()
-            duck.jumpSound:play()
-            duck.currentAnimation = duck.jumpAnimation
-            currentJumpVelocity = gravity.JUMP_VELOCITY
-            duck.onGround = false
+    self.currentAnimation = self.idleAnimation
+    local initialImage = self.currentAnimation:getImage():scaledImage(self.ratio, self.ratio)
+
+    Duck.super.init(self, {
+        name = "Thunder Duck",
+        image = initialImage,
+        spawnX = spawnX or 80,
+        groundY = groundY,
+        team = "player",
+        tag = playdateConstants.tags.player,
+        zIndex = 1000,
+        direction = graphics.kImageUnflipped,
+        stats = {
+            speed = 320,
+            gravityScale = 2.0,
+            jumpVelocity = -650,
+            jumpCutMultiplier = 0.45,
+            maximumFallSpeed = 500,
+            maxHealth = 6,
+            attackPower = 1,
+            defense = 0,
+            attackCooldown = 0.35,
+            knockbackResistance = 0,
+            startsOnGround = true,
+            collider = {
+                width = 28,
+                height = 48
+            }
+        }
+    })
+
+    self.jumpSound = sound.fileplayer.new("Sounds/SoundEffects/Jump")
+    self.lazerSound = sound.fileplayer.new("Sounds/SoundEffects/Lazer")
+
+    local mjollnirSource = graphics.image.new("Images/mjolner")
+    assert(mjollnirSource, "Mjollnir image failed to load")
+
+    local _, mjollnirSourceHeight = mjollnirSource:getSize()
+    local weaponScale = self.weaponHeight / mjollnirSourceHeight
+    self.weaponImageRight = mjollnirSource:rotatedImage(45, weaponScale)
+    self.weaponImageLeft = mjollnirSource:rotatedImage(-45, weaponScale)
+    self.weaponSprite = graphics.sprite.new(self.weaponImageRight)
+    self.weaponSprite:setZIndex(self:getZIndex() + 100)
+    self.weaponSprite:add()
+    self:updateWeapon()
+end
+
+function Duck:updateWeapon()
+    local horizontalOffset = 19
+    local verticalOffset = -33
+    local weaponImage = self.weaponImageRight
+
+    if self.currentAnimation == self.crouchAnimation then
+        verticalOffset = -28
+    end
+
+    if self.direction == graphics.kImageFlippedX then
+        horizontalOffset = -horizontalOffset
+        weaponImage = self.weaponImageLeft
+    end
+
+    self.weaponSprite:setZIndex(self:getZIndex() + 100)
+    self.weaponSprite:setImage(weaponImage)
+    self.weaponSprite:moveTo(self.x + horizontalOffset, self.y + verticalOffset)
+end
+
+function Duck:beforePhysics(_deltaTime)
+    local didMove = false
+
+    if playdate.buttonIsPressed(playdate.kButtonLeft) then
+        self:setMovement(-1)
+        self.direction = graphics.kImageFlippedX
+        didMove = true
+    elseif playdate.buttonIsPressed(playdate.kButtonRight) then
+        self:setMovement(1)
+        self.direction = graphics.kImageUnflipped
+        didMove = true
+    else
+        self:stopMoving()
+    end
+
+    if didMove and self.onGround then
+        self.currentAnimation = self.walkingAnimation
+    end
+
+    if playdate.buttonJustPressed(playdate.kButtonA) and self:jump() then
+        if self.jumpSound then
+            self.jumpSound:play()
         end
+        self.currentAnimation = self.jumpAnimation
+    elseif playdate.buttonJustReleased(playdate.kButtonA) then
+        self:cutJumpShort()
     end
 
-    duck.shoot = function()
-        duck.lazerSound:play()
+    if playdate.buttonJustPressed(playdate.kButtonB) and self.lazerSound then
+        self.lazerSound:play()
     end
 
-    duck.continueJump = function()
-        local currentTime = playdate.getCurrentTimeMilliseconds()
-        local jumpTime = (currentTime - jumpStartTime) / 1000
-        
-        if jumpTime < gravity.JUMP_DURATION and playdate.buttonIsPressed("A") then
-            currentJumpVelocity = gravity.JUMP_VELOCITY
+    if not didMove and self.onGround then
+        if playdate.buttonIsPressed(playdate.kButtonDown) then
+            self.currentAnimation = self.crouchAnimation
         else
-            isJumping = false
+            self.currentAnimation = self.idleAnimation
         end
+    elseif not self.onGround then
+        self.currentAnimation = self.jumpAnimation
+    end
+end
+
+function Duck:updateAnimation(_deltaTime)
+    local image
+
+    if self.currentAnimation == self.jumpAnimation or self.currentAnimation == self.crouchAnimation then
+        image = self.currentAnimation
+    else
+        image = self.currentAnimation:getImage():scaledImage(self.ratio, self.ratio)
     end
 
-    duck.applyPhysics = function()
-        -- Apply gravity
-        movementVelocity.y = movementVelocity.y + gravity.GRAVITY_CONSTANT * gravity.dt
-        
-        -- Apply jump force if jumping
-        if isJumping then
-            movementVelocity.y = currentJumpVelocity
-        end
-        
-        -- Get current position
-        local x, y = duck:getPosition()
-        
-        -- Calculate new position
-        local newX = x + movementVelocity.x * gravity.dt
-        local newY = y + movementVelocity.y * gravity.dt
-        
-        -- Check ground collision
-        local groundY = playdateConstants.playdateHeight - 32 - 44
-        if newY >= groundY then
-            newY = groundY
-            movementVelocity.y = 0
-            duck.onGround = true
-            isJumping = false
-        end
-        
-        -- Update position
-        duck:moveTo(newX, newY)
-    end
-
-    duck.handleAnimations = function()
-        -- Is a static Image
-        if duck.currentAnimation == duck.jumpAnimation or duck.currentAnimation == duck.crouchAnimation then
-            duck:setImage(duck.currentAnimation:scaledImage(1,1), duck.direction)
-        else
-            -- Is a Gif (AnimatedImage)
-            duck:setImage(duck.currentAnimation:getImage():scaledImage(duck.ratio, duck.ratio), duck.direction)
-        end
-    end
-
-    duck.handleMovement = function()
-        local didMove = false
-        local speed = 120
-        
-        -- Handle movement input
-        if playdate.buttonIsPressed(playdate.kButtonLeft) then
-            if duck.onGround then
-                duck.currentAnimation = duck.walkingAnimation
-            end
-            movementVelocity.x = -speed
-            duck.direction = left
-            didMove = true
-        elseif playdate.buttonIsPressed(playdate.kButtonRight) then
-            if duck.onGround then 
-                duck.currentAnimation = duck.walkingAnimation
-            end
-            movementVelocity.x = speed
-            duck.direction = right
-            didMove = true
-        else
-            movementVelocity.x = 0
-        end
-
-        -- Handle jumping
-        if playdate.buttonJustPressed("A") and duck.onGround then
-            duck:jump()
-        elseif playdate.buttonIsPressed("A") and isJumping then
-            duck:continueJump()
-        elseif not playdate.buttonIsPressed("A") and isJumping then
-            currentJumpVelocity = -gravity.JUMP_VELOCITY * gravity.JUMP_CUT_SHORT_MULTIPLIER
-        end
-
-        if playdate.buttonJustPressed("B") then
-            duck:shoot()
-        end
-
-        if not didMove and duck.onGround then
-            if playdate.buttonIsPressed(playdate.kButtonDown) then
-                duck.currentAnimation = duck.crouchAnimation
-            else
-                duck.currentAnimation = duck.idleAnimation
-            end
-        end
-    end
-
-    duck.updateFrame = function()
-        duck:handleMovement()
-        duck:applyPhysics()
-        duck:handleAnimations()
-    end
-    
-    return duck
-    
+    self:setImage(image, self.direction)
+    self:updateWeapon()
 end
 
 return Duck

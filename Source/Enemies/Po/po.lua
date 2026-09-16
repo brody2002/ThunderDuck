@@ -1,59 +1,62 @@
-import "CoreLibs/object"
 import "CoreLibs/graphics"
-import "CoreLibs/sprites"
-import "CoreLibs/timer"
-import "/../Support/animatedimage"
-
--- ThunderDuck Imports  
 import "../../../Support/animatedimage"
+
+import "../../Characters/character"
 import "../../Shared/playdateConstants"
 
 local graphics <const> = playdate.graphics
 
-Po = {}
+class("Po").extends(Character)
 
-Po.create = function()
-     -- Create the sprite object
-    ---@class playdate.graphics.sprite
-    local po = graphics.sprite.new()
-    
-    -- Directions
-    local left, right = 1, 0 
-    
-    -- Properties
-    po.direction = right
-    po.onGround = true
-    po.ratio = 1
-    po.velocity = { x = 0, y = 0 }
-    
-    -- Private state
-    local isJumping = false
-    local jumpStartTime = 0
-    local currentJumpVelocity = 0
-    local movementVelocity = { x = 0, y = 0 }
-    
-    -- Load animations  Enemies/Po/Po-idle
-    po.idleAnimation = graphics.imagetable.new
-    po.idleAnimation = AnimatedImage.new("Enemies/Po/Sprites/Idle", {delay = 40, loop = true, first = 1, last = 36 })
+function Po:init(spawnX, groundY)
+    self.ratio = 1
+    self.idleAnimation = AnimatedImage.new(
+        "Enemies/Po/Sprites/Idle",
+        { delay = 40, loop = true, first = 1, last = 36 }
+    )
+    assert(self.idleAnimation, "Panda animation failed to load")
 
-    assert(po.idleAnimation, "animation not found!")
-    po.currentAnimation = po.idleAnimation
+    self.currentAnimation = self.idleAnimation
+    local initialImage = self.currentAnimation:getImage():scaledImage(self.ratio, self.ratio)
 
-    po.width, po.height = po.currentAnimation:getImage():scaledImage(po.ratio, po.ratio):getSize()
+    Po.super.init(self, {
+        name = "Panda",
+        image = initialImage,
+        spawnX = spawnX or 210,
+        groundY = groundY,
+        spawnHeight = 80,
+        team = "boss",
+        tag = playdateConstants.tags.enemy,
+        zIndex = 500,
+        direction = graphics.kImageUnflipped,
+        stats = {
+            speed = 70,
+            gravityScale = 1,
+            jumpVelocity = -380,
+            maximumFallSpeed = 450,
+            maxHealth = 30,
+            attackPower = 2,
+            defense = 1,
+            attackCooldown = 0.8,
+            knockbackResistance = 0.4,
+            startsOnGround = false,
+            -- Panda's art occupies y=60..133 in a 256px animation frame.
+            -- This collider aligns the visible feet instead of the transparent canvas.
+            collider = {
+                x = 98,
+                y = 60,
+                width = 61,
+                height = 73
+            }
+        }
+    })
+end
 
-    -- Initial setup
-    local initialImage = po.currentAnimation:getImage()
-    po:setImage(initialImage)
-    local floorLevel = playdateConstants.playdateHeight - po.height
-    po:moveTo(200, 120)
-    po:add()
-
-    po.updateFrame = function(self)
-         -- Is a Gif (AnimatedImage)
-        po:setImage(po.currentAnimation:getImage():scaledImage(po.ratio, po.ratio), po.direction)
-    end
-    
-    return po
+function Po:updateAnimation(_deltaTime)
+    self:setImage(
+        self.currentAnimation:getImage():scaledImage(self.ratio, self.ratio),
+        self.direction
+    )
 end
 
 return Po
