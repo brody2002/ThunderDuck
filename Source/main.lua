@@ -1,11 +1,10 @@
--- Playdate Imports
 import "CoreLibs/object"
 import "CoreLibs/graphics"
 import "CoreLibs/sprites"
 import "CoreLibs/timer"
 
--- ThunderDuck Imports
 import "../Support/animatedImage"
+import "Shared/gravity"
 import "Stages/stage"
 import "Player/duck"
 import "Enemies/Po/po"
@@ -14,40 +13,39 @@ import "UI/healthbar"
 
 local graphics <const> = playdate.graphics
 
--- Player
-local duck = Duck.create()
-
--- Enemies
-local po = Po.create()
-local frog = Frog.create()
-
--- Stage
-local stage1 = Stage.create()
-
--- UI
-local healthBar = HealthBar.create()
+local stage1
+local duck
+local po
+local frog
+local healthBar
 
 local function myGameSetUp()
+    stage1 = Stage.create()
     stage1:setupStage()
-    frog:initializeMovement()
+
+    local floorY = stage1:getFloorY()
+    duck = Duck(80, floorY)
+    po = Po(210, floorY)
+    frog = Frog(340, floorY)
+    healthBar = HealthBar.create()
+
     healthBar.drawHealth()
 end
 
 function playdate.update()
-    -- Characters
-    duck:updateFrame()
-    po:updateFrame()
-    frog:updateFrame()
+    local deltaTime = Physics.fixedDeltaTime
 
-    if playdate.buttonJustPressed("B") then
+    duck:updateFrame(deltaTime)
+    po:updateFrame(deltaTime)
+    frog:updateFrame(deltaTime)
+
+    if playdate.buttonJustPressed(playdate.kButtonB) then
         healthBar.damageReceived()
     end
 
-    -- UI
     graphics.sprite.update()
     playdate.timer.updateTimers()
 end
 
--- MAIN 
 playdate.display.setRefreshRate(50)
 myGameSetUp()
