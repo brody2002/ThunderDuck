@@ -3,6 +3,7 @@ import "../../Support/animatedimage"
 
 import "../Characters/character"
 import "../Shared/playdateConstants"
+import "../Weapons/lightningBolt"
 
 local graphics <const> = playdate.graphics
 local sound <const> = playdate.sound
@@ -14,6 +15,8 @@ function Duck:init(spawnX, groundY)
     self.weaponHeight = 38
     self.weaponRotationStep = 5
     self.weaponAngle = 45
+    self.fireInterval = 0.4
+    self.fireCooldown = 0
     self.idleAnimation = AnimatedImage.new(
         "Images/Duck/Gifs/idle",
         { delay = 200, loop = true, first = 1, last = 2 }
@@ -100,7 +103,7 @@ function Duck:getWeaponImage(angle)
     return self.weaponImageCache[snappedAngle]
 end
 
-function Duck:updateWeapon()
+function Duck:getWeaponHandPosition()
     local horizontalOffset = 7
     local verticalOffset = -20
 
@@ -112,6 +115,10 @@ function Duck:updateWeapon()
         horizontalOffset = -horizontalOffset
     end
 
+    return self.x + horizontalOffset, self.y + verticalOffset
+end
+
+function Duck:updateWeaponAngle()
     if playdate.isCrankDocked() then
         if self.direction == graphics.kImageFlippedX then
             self.weaponAngle = 315
@@ -121,13 +128,34 @@ function Duck:updateWeapon()
     else
         self.weaponAngle = playdate.getCrankPosition()
     end
+end
+
+function Duck:updateWeapon()
+    local handX, handY = self:getWeaponHandPosition()
+    self:updateWeaponAngle()
 
     self.weaponSprite:setZIndex(self:getZIndex() + 100)
     self.weaponSprite:setImage(self:getWeaponImage(self.weaponAngle))
-    self.weaponSprite:moveTo(self.x + horizontalOffset, self.y + verticalOffset)
+    self.weaponSprite:moveTo(handX, handY)
 end
 
-function Duck:beforePhysics(_deltaTime)
+function Duck:fireLightning()
+    local handX, handY = self:getWeaponHandPosition()
+    self:updateWeaponAngle()
+
+    local radians = math.rad(self.weaponAngle)
+    local muzzleDistance = self.weaponHeight - 4
+    local spawnX = handX + math.sin(radians) * muzzleDistance
+    local spawnY = handY - math.cos(radians) * muzzleDistance
+
+    LightningBolt(spawnX, spawnY, self.weaponAngle)
+
+    if self.lazerSound then
+        self.lazerSound:play()
+    end
+end
+
+function Duck:beforePhysics(deltaTime)
     local didMove = false
 
     if playdate.buttonIsPressed(playdate.kButtonLeft) then
@@ -155,8 +183,11 @@ function Duck:beforePhysics(_deltaTime)
         self:cutJumpShort()
     end
 
-    if playdate.buttonJustPressed(playdate.kButtonB) and self.lazerSound then
-        self.lazerSound:play()
+    self.fireCooldown = math.max(0, self.fireCooldown - deltaTime)
+
+    if playdate.buttonIsPressed(playdate.kButtonB) and self.fireCooldown <= 0 then
+        self:fireLightning()
+        self.fireCooldown = self.fireInterval
     end
 
     if not didMove and self.onGround then
